@@ -1,0 +1,39 @@
+{
+  "elements": [
+    {
+      "lastName": "Chim",
+      "memorialized": false,
+      "geoRegion": "Toronto, Ontario, Canada",
+      "saved": true,
+      "uniquePositionCompanyCount": 1,
+      "currentPositions": [
+        {
+          "current": true,
+          "companyName": "Symmetry Physiotherapy + Rehabilitation",
+          "title": "Physiotherapist, Clinic Owner"
+        }
+      ],
+
+      "pendingInvitation": true,
+      "outreachActivity": {
+        "domainSource": "SALES_NAVIGATOR",
+        "targetName": "Joanna Chim",
+        "performedAt": 1758444655742,
+        "actorName": "Ali Aamir",
+        "salesLead": 129240593,
+        "activityType": "SEND_INVITATION"
+      },
+      "degree": 3,
+      "fullName": "Joanna Chim",
+      "listCount": 1,
+      "firstName": "Joanna",
+      "dateAddedToListAt": 1757625366520
+    }
+  ],
+  "paging": {
+    "total": 386,
+    "count": 100,
+    "start": 125,
+    "links": []
+  }
+}
