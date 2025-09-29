@@ -1,7 +1,6 @@
 import axios, { AxiosInstance } from "axios";
-import { CookieJar } from "tough-cookie";
-import { wrapper } from "axios-cookiejar-support";
 import headersConfig from "../headers.json";
+import { SearchResponse } from "./schemas";
 
 export interface LinkedInHeaders {
   [key: string]: string;
@@ -9,19 +8,12 @@ export interface LinkedInHeaders {
 
 class LinkedInApiClient {
   private axiosInstance: AxiosInstance;
-  private cookieJar: CookieJar;
 
   constructor() {
-    this.cookieJar = new CookieJar();
-
-    this.axiosInstance = wrapper(
-      axios.create({
-        baseURL: "https://www.linkedin.com/sales-api",
-        timeout: 30000,
-        jar: this.cookieJar,
-        withCredentials: true,
-      })
-    );
+    this.axiosInstance = axios.create({
+      baseURL: "https://www.linkedin.com/sales-api",
+      timeout: 30000,
+    });
 
     this.setupRequestInterceptor();
     this.setupResponseInterceptor();
@@ -30,13 +22,15 @@ class LinkedInApiClient {
   private setupRequestInterceptor(): void {
     this.axiosInstance.interceptors.request.use(
       (config) => {
+        // Add common headers
         Object.assign(config.headers, headersConfig.common);
-        config.headers["Cookie"] = headersConfig.cookie;
+        
+        // Add cookies manually
+        config.headers['Cookie'] = headersConfig.cookie;
 
         // Debug logging
         console.log("Request URL:", config.url);
         
-
         return config;
       },
       (error) => {
@@ -57,6 +51,10 @@ class LinkedInApiClient {
           data: error.response?.data,
           url: error.config?.url,
         });
+        
+        // Log the full error response for debugging
+        console.error("Full error response:", JSON.stringify(error.response?.data, null, 2));
+        
         return Promise.reject(error);
       }
     );
@@ -67,7 +65,7 @@ class LinkedInApiClient {
     count?: number;
     leadListId?: string;
     [key: string]: any;
-  }): Promise<any> {
+  }): Promise<SearchResponse> {
     // Default lead list ID if not provided
     const leadListId = params.leadListId || "7371658687360155648";
     
@@ -100,13 +98,26 @@ class LinkedInApiClient {
     return response.data;
   }
 
-  public updateCookies(newCookies: string): void {
-    this.cookieJar = new CookieJar();
-    this.axiosInstance.defaults.jar = this.cookieJar;
+  public async removeFromLeadList(data: {
+    leadListId: string;
+    entityUrn: string;
+  }): Promise<any> {
+    const url = `/salesApiListEntities/(list:urn%3Ali%3Afs_salesList%3A${data.leadListId},entity:${encodeURIComponent(data.entityUrn)})?unsaveEntity=false`;
+    
+    const response = await this.axiosInstance.delete(url, {
+      headers: headersConfig.remove,
+    });
+
+    return response.data;
   }
 
-  public getCookieJar(): CookieJar {
-    return this.cookieJar;
+  public updateCookies(newCookies: string): void {
+    // Update the cookie in headers.json
+    headersConfig.cookie = newCookies;
+  }
+
+  public getCookieJar(): any {
+    return null; // No longer using CookieJar
   }
 }
 

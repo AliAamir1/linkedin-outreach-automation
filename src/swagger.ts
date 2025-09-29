@@ -6,6 +6,8 @@ import {
   ConnectionResponseSchema,
   AutomationRequestSchema,
   AutomationResponseSchema,
+  RemoveFromListRequestSchema,
+  RemoveFromListResponseSchema,
   ErrorResponseSchema
 } from './schemas';
 
@@ -182,6 +184,65 @@ registry.registerPath({
   },
 });
 
+registry.registerPath({
+  method: 'post',
+  path: '/api/remove',
+  description: 'Remove a person from a LinkedIn Sales Navigator lead list. This endpoint removes a specific person (identified by their entity URN) from a specified lead list.',
+  summary: 'Remove person from lead list',
+  tags: ['Remove'],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: RemoveFromListRequestSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Person successfully removed from lead list',
+      content: {
+        'application/json': {
+          schema: RemoveFromListResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Bad Request - Invalid request parameters (leadListId or entityUrn)',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: 'Unauthorized - Invalid LinkedIn session or authentication',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: 'Not Found - Lead list or person not found',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: 'Internal Server Error - LinkedIn API issues or other server errors',
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
 const generator = new OpenApiGeneratorV3(registry.definitions);
 
 export const openAPIDocument = generator.generateDocument({
@@ -213,6 +274,10 @@ export const openAPIDocument = generator.generateDocument({
     {
       name: 'Automation',
       description: 'AI-powered LinkedIn outreach automation',
+    },
+    {
+      name: 'Remove',
+      description: 'Remove people from LinkedIn lead lists',
     },
   ],
 });

@@ -3,6 +3,7 @@ import swaggerUi from 'swagger-ui-express';
 import searchRoutes from './routes/search';
 import connectRoutes from './routes/connect';
 import aiAutomationRoutes from './routes/ai-automation';
+import removeRoutes from './routes/remove';
 import openAPIDocument from './swagger';
 import dotenv from 'dotenv';
 
@@ -22,6 +23,7 @@ app.use((req, res, next) => {
 app.use('/api/search', searchRoutes);
 app.use('/api/connect', connectRoutes);
 app.use('/api/automation', aiAutomationRoutes);
+app.use('/api/remove', removeRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openAPIDocument));
 
@@ -33,6 +35,7 @@ app.get('/', (req, res) => {
       'GET /api/search/people': 'Search for people in LinkedIn Sales Navigator',
       'POST /api/connect': 'Send connection request to LinkedIn user',
       'POST /api/automation': 'AI-powered LinkedIn outreach automation',
+      'POST /api/remove': 'Remove person from lead list',
       'GET /api-docs': 'API documentation (Swagger UI)'
     },
     documentation: '/api-docs'
@@ -73,6 +76,7 @@ const server = app.listen(PORT, () => {
   console.log(`🔍 Search People: GET http://localhost:${PORT}/api/search/people?start=0&count=25`);
   console.log(`🤝 Send Connection: POST http://localhost:${PORT}/api/connect`);
   console.log(`🤖 AI Automation: POST http://localhost:${PORT}/api/automation`);
+  console.log(`🗑️ Remove from List: POST http://localhost:${PORT}/api/remove`);
 });
 
 process.on('SIGTERM', () => {

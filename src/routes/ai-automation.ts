@@ -27,28 +27,36 @@ const initializeGeminiAI = () => {
 const generatePersonalizedMessage = async (
   ai: GoogleGenAI,
   messageTemplate: string,
-  person: PersonElement
-): Promise<string> => {
+  person: PersonElement,
+  targetIndustries?: string,
+  excludeIndustries?: string
+): Promise<{ qualified: boolean; outreachMessage: string }> => {
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: outreachPrompt({
       outreachMessageTemplate: messageTemplate,
       person,
+      targetIndustries,
+      excludeIndustries,
     }),
     config: {
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
         properties: {
+          qualified: { type: Type.BOOLEAN },
           outreachMessage: { type: Type.STRING },
         },
-        required: ["outreachMessage"],
+        required: ["qualified", "outreachMessage"],
       },
     },
   });
 
   const result = JSON.parse(response.text || "{}");
-  return result.outreachMessage || messageTemplate;
+  return {
+    qualified: result.qualified || false,
+    outreachMessage: result.outreachMessage || "",
+  };
 };
 
 router.post("/", async (req: Request, res: Response) => {
@@ -69,6 +77,7 @@ router.post("/", async (req: Request, res: Response) => {
     let processedLeads = 0;
     let sentInvitations = 0;
     let skippedLeads = 0;
+    let unqualifiedLeads = 0;
     const errors: Array<{ personId: string; error: string }> = [];
 
     // Main automation loop
@@ -115,20 +124,47 @@ router.post("/", async (req: Request, res: Response) => {
             console.log(`Processing ${person.fullName} (${person.personId})`);
 
             // Generate personalized message using Gemini AI
-            const personalizedMessage = await generatePersonalizedMessage(
+            const aiResult = await generatePersonalizedMessage(
               ai,
               automationData.messageTemplate,
-              person
+              person,
+              automationData.targetIndustries,
+              automationData.excludeIndustries
             );
 
+            if (!aiResult.qualified) {
+              console.log(
+                `❌ ${person.fullName} is not qualified for outreach - removing from lead list`
+              );
+
+              try {
+                //TODO: Fix the remove api call
+                // Remove unqualified candidate from lead list
+                // await linkedInApiClient.removeFromLeadList({
+                //   leadListId: automationData.leadListId,
+                //   entityUrn: person.entityUrn,
+                // });
+                // console.log(`🗑️ Removed ${person.fullName} from lead list`);
+              } catch (removeError: any) {
+                console.error(
+                  `Failed to remove ${person.fullName} from lead list:`,
+                  removeError.message
+                );
+              }
+
+              unqualifiedLeads++;
+              processedLeads++;
+              continue;
+            }
+
             console.log(
-              `Generated message for ${person.firstName}: "${personalizedMessage}"`
+              `✅ ${person.fullName} is qualified. Generated message: "${aiResult.outreachMessage}"`
             );
 
             // Send connection request
             await linkedInApiClient.sendConnectionRequest({
               member: extractPersonId(person.entityUrn),
-              message: personalizedMessage,
+              message: aiResult.outreachMessage,
             });
 
             sentInvitations++;
@@ -186,6 +222,9 @@ router.post("/", async (req: Request, res: Response) => {
       } catch (error: any) {
         console.error("Error in batch processing:", error);
         // Continue with next batch rather than failing completely
+
+        // Break the loop because we don't want to continue processing if there is an error
+        processedLeads = automationData.totalLeads + 1;
         currentStart += 100;
         continue;
       }
@@ -193,10 +232,11 @@ router.post("/", async (req: Request, res: Response) => {
 
     const response = {
       success: true,
-      message: `Automation completed successfully. Processed ${processedLeads} leads, sent ${sentInvitations} invitations, skipped ${skippedLeads} leads.`,
+      message: `Automation completed successfully. Processed ${processedLeads} leads, sent ${sentInvitations} invitations, skipped ${skippedLeads} leads, unqualified ${unqualifiedLeads} leads.`,
       processedLeads,
       sentInvitations,
       skippedLeads,
+      unqualifiedLeads,
       errors,
     };
 
@@ -212,6 +252,7 @@ router.post("/", async (req: Request, res: Response) => {
         processedLeads: 0,
         sentInvitations: 0,
         skippedLeads: 0,
+        unqualifiedLeads: 0,
         errors: [
           {
             personId: "",
@@ -229,6 +270,7 @@ router.post("/", async (req: Request, res: Response) => {
         processedLeads: 0,
         sentInvitations: 0,
         skippedLeads: 0,
+        unqualifiedLeads: 0,
         errors: [{ personId: "", error: "Missing Google AI API key" }],
       };
       return res.status(500).json(errorResponse);
@@ -241,6 +283,7 @@ router.post("/", async (req: Request, res: Response) => {
       processedLeads: 0,
       sentInvitations: 0,
       skippedLeads: 0,
+      unqualifiedLeads: 0,
       errors: [{ personId: "", error: error?.message || "Unknown error" }],
     };
 
