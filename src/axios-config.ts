@@ -102,7 +102,16 @@ class LinkedInApiClient {
     leadListId: string;
     entityUrn: string;
   }): Promise<any> {
-    const url = `/salesApiListEntities/(list:urn%3Ali%3Afs_salesList%3A${data.leadListId},entity:${encodeURIComponent(data.entityUrn)})?unsaveEntity=false`;
+    // First encode the entity URN, then manually encode parentheses
+    let encodedEntityUrn = encodeURIComponent(data.entityUrn);
+    // Replace parentheses with their URL-encoded equivalents
+    encodedEntityUrn = encodedEntityUrn.replace(/\(/g, '%28').replace(/\)/g, '%29');
+    
+    const url = `/salesApiListEntities/(list:urn%3Ali%3Afs_salesList%3A${data.leadListId},entity:${encodedEntityUrn})?unsaveEntity=false`;
+    
+    console.log("Remove URL:", url);
+    console.log("Original entity URN:", data.entityUrn);
+    console.log("Encoded entity URN:", encodedEntityUrn);
     
     const response = await this.axiosInstance.delete(url, {
       headers: headersConfig.remove,

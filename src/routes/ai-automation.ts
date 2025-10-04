@@ -138,13 +138,13 @@ router.post("/", async (req: Request, res: Response) => {
               );
 
               try {
-                //TODO: Fix the remove api call
+                
                 // Remove unqualified candidate from lead list
-                // await linkedInApiClient.removeFromLeadList({
-                //   leadListId: automationData.leadListId,
-                //   entityUrn: person.entityUrn,
-                // });
-                // console.log(`🗑️ Removed ${person.fullName} from lead list`);
+                await linkedInApiClient.removeFromLeadList({
+                  leadListId: automationData.leadListId,
+                  entityUrn: person.entityUrn,
+                });
+                console.log(`🗑️ Removed ${person.fullName} from lead list`);
               } catch (removeError: any) {
                 console.error(
                   `Failed to remove ${person.fullName} from lead list:`,
